@@ -178,22 +178,33 @@ class MAVLink_%s_message(MAVLink_message):
         '''
         def __init__(self""" % (m.name.lower(), wrapper.fill(m.description.strip())))
         if len(m.fields) != 0:
-                outf.write(", " + ", ".join(m.fieldnames))
+            outf.write(", " + ", ".join(m.fieldnames))
         outf.write("):\n")
         outf.write("                MAVLink_message.__init__(self, MAVLINK_MSG_ID_%s, '%s')\n" % (m.name.upper(), m.name.upper()))
         if len(m.fieldnames) != 0:
-                outf.write("                self._fieldnames = ['%s']\n" % "', '".join(m.fieldnames))
+            outf.write("                self._fieldnames = ['%s']\n" % "', '".join(m.fieldnames))
+        variable_length_array = None
         for f in m.fields:
-                outf.write("                self.%s = %s\n" % (f.name, f.name))
+            outf.write("                self.%s = %s\n" % (f.name, f.name))
+            if f.array_length < 0:
+                variable_length_array = f.name
+        if variable_length_array is not None:
+            len_str = "len(self.%s)" % variable_length_array
+            fmtstr = "'{0:s}' % {1:s}".format(m.fmtstr, len_str)
+        else:
+            fmtstr = "'{0:s}'".format(m.fmtstr)
         outf.write("""
         def pack(self, mav):
-                return MAVLink_message.pack(self, mav, %u, struct.pack('%s'""" % (m.crc_extra, m.fmtstr))
+                return MAVLink_message.pack(self, mav, %u, struct.pack(%s""" % (m.crc_extra, fmtstr))
         for field in m.ordered_fields:
-                if (field.type != "char" and field.array_length > 1):
-                        for i in range(field.array_length):
-                                outf.write(", self.{0:s}[{1:d}]".format(field.name,i))
-                else:
-                        outf.write(", self.{0:s}".format(field.name))
+            if field.type != "char" and field.array_length > 1:
+                for i in range(field.array_length):
+                    outf.write(", self.{0:s}[{1:d}]".format(field.name, i))
+            elif field.type != "char" and field.array_length < 0:
+                # use '*' to unpack variable length array
+                outf.write(", *self.{0:s}".format(field.name))
+            else:
+                outf.write(", self.{0:s}".format(field.name))
         outf.write("))\n")
 
 
@@ -214,10 +225,12 @@ def mavfmt(field):
         'uint64_t' : 'Q',
         }
 
-    if field.array_length:
+    if field.array_length > 0:
         if field.type == 'char':
             return str(field.array_length)+'s'
         return str(field.array_length)+map[field.type]
+    elif field.array_length < 0:
+        return '%s'+map[field.type]
     return map[field.type]
 
 def generate_mavlink_class(outf, msgs, xml):
@@ -392,6 +405,16 @@ class MAVLink(object):
                 # decode the payload
                 (fmt, type, order_map, len_map, crc_extra) = mavlink_map[msgId]
 
+                # if msg contains variable length array, build format string with proper number of elements
+                va_nb_elements = 0
+                va_fmt = fmt.find('%s')
+                if va_fmt > 0:
+                    fixed_size = struct.calcsize(fmt[:va_fmt])
+                    va_element_size = struct.calcsize(fmt[va_fmt+2:])
+                    va_size = len(msgbuf[6:-2]) - fixed_size
+                    va_nb_elements = va_size / va_element_size
+                    fmt = fmt % str(va_nb_elements)
+
                 # decode the checksum
                 try:
                     crc, = struct.unpack('<H', msgbuf[-2:])
@@ -428,6 +451,8 @@ class MAVLink(object):
                             field = t[tip]
                             if L == 1 or isinstance(field, str):
                                 tlist.append(field)
+                            elif L < 0:
+                                tlist.append(t[tip:(tip + va_nb_elements)])
                             else:
                                 tlist.append(t[tip:(tip + L)])
 

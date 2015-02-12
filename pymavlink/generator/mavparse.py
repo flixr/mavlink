@@ -52,7 +52,11 @@ class MAVField(object):
         aidx = type.find("[")
         if aidx != -1:
             assert type[-1:] == ']'
-            self.array_length = int(type[aidx+1:-1])
+            #check if variable length array
+            if type[aidx+1] == ']':
+                self.array_length = -1
+            else:
+                self.array_length = int(type[aidx+1:-1])
             type = type[0:aidx]
             if type == 'array':
                 type = 'int8_t'
@@ -93,13 +97,18 @@ class MAVField(object):
 
     def set_test_value(self):
         '''set a testsuite value for a MAVField'''
-        if self.array_length:
+        if self.array_length > 0:
             self.test_value = []
             for i in range(self.array_length):
                 self.test_value.append(self.gen_test_value(i))
+        elif self.array_length < 0:
+            # variable length array, test with 4 for now
+            self.test_value = []
+            for i in range(4):
+                self.test_value.append(self.gen_test_value(i))
         else:
                 self.test_value = self.gen_test_value(0)
-        if self.type == 'char' and self.array_length:
+        if self.type == 'char' and self.array_length > 0:
             v = ""
             for c in self.test_value:
                 v += c
