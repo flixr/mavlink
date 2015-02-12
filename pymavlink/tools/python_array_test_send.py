@@ -4,7 +4,7 @@
 import time
 from pymavlink import mavutil
 
-master = mavutil.mavlink_connection("udp::14555", input=False, dialect="array_test")
+master = mavutil.mavlink_connection("udp::14555", input=False, dialect="python_array_test")
 while True:
     master.mav.system_time_send(1,2)
     master.mav.array_test_0_send(1, [-3, -2, -1, 0], [1,2,3,4], [5,6,7,8], [9,10,11,12])
