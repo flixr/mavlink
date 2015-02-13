@@ -411,7 +411,7 @@ class MAVLink(object):
                     raise MAVError('unknown MAVLink message ID %u' % msgId)
 
                 # decode the payload
-                (fmt, type, order_map, len_map, crc_extra) = mavlink_map[msgId]
+                (fmt, msgtype, order_map, len_map, crc_extra) = mavlink_map[msgId]
 
                 # if msg contains variable length array, build format string with proper number of elements
                 va_nb_elements = 0
@@ -442,7 +442,7 @@ class MAVLink(object):
                     t = struct.unpack(fmt, msgbuf[6:-2])
                 except struct.error as emsg:
                     raise MAVError('Unable to unpack MAVLink payload type=%s fmt=%s payloadLength=%u: %s' % (
-                        type, fmt, len(msgbuf[6:-2]), emsg))
+                        msgtype, fmt, len(msgbuf[6:-2]), emsg))
 
                 tlist = list(t)
                 # handle sorted fields
@@ -474,9 +474,9 @@ class MAVLink(object):
                 t = tuple(tlist)
                 # construct the message object
                 try:
-                    m = type(*t)
+                    m = msgtype(*t)
                 except Exception as emsg:
-                    raise MAVError('Unable to instantiate MAVLink message of type %s : %s' % (type, emsg))
+                    raise MAVError('Unable to instantiate MAVLink message of type %s : %s' % (msgtype, emsg))
                 m._msgbuf = msgbuf
                 m._payload = msgbuf[6:-2]
                 m._crc = crc
