@@ -75,5 +75,11 @@
 			<field type="double[2]"		name="ar_d">Value array</field>
 			<field type="float[]"		name="ar_f_v">Variable length array</field>
 		</message>
+		<message id="161" name="ARRAY_TEST_11">
+			<description>Array test #11.</description>
+			<field type="uint32_t"		name="v3">Stub field</field>
+			<field type="char[]"		name="ar_c_v">Variable length cahr array</field>
+			<field type="int8_t[2]"		name="ar_i8">Value array</field>
+		</message>
 	</messages>
 </mavlink>

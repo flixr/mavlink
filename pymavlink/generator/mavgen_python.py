@@ -200,7 +200,12 @@ class MAVLink_%s_message(MAVLink_message):
         pack_fields = []
         for field in m.ordered_fields:
             if msg_has_array:
-                if field.type != "char" and field.array_length != 0:
+                if field.type == "char":
+                    if field.array_length < 0:
+                        pack_fields.append("list(self.{0:s})".format(field.name))
+                    else:
+                        pack_fields.append("[self.{0:s}]".format(field.name))
+                elif field.array_length != 0:
                     pack_fields.append("self.{0:s}".format(field.name))
                 else:
                     pack_fields.append("[self.{0:s}]".format(field.name))
@@ -460,10 +465,8 @@ class MAVLink(object):
                             L = len_map[order]
                             tip = sum(len_map[:order])
                             field = t[tip]
-                            if L == 1 or isinstance(field, str):
-                                tlist.append(field)
-                            elif L < 0:
-                                tlist.append(t[tip:(tip + va_nb_elements)])
+                            if isinstance(field, str):
+                                tlist.append(''.join(t[tip:(tip + L)]))
                             else:
                                 tlist.append(t[tip:(tip + L)])
 

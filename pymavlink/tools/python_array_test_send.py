@@ -20,6 +20,7 @@ while True:
     # last element is variable length array (with random length of 1-16
     master.mav.array_test_9_send(1, [2.2, 3.3], sample(xrange(255), randint(1, 16)))
     master.mav.array_test_10_send("HelloWorld", [2.2, 3.3], sample([x * random() for x in xrange(444)], randint(1, 16)))
+    master.mav.array_test_11_send(1, "foo bar baz", [2, -3])
     time.sleep(1)
 
 master.close()
