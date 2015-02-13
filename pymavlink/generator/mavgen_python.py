@@ -423,6 +423,9 @@ class MAVLink(object):
                     va_nb_elements = va_size / va_element_size
                     fmt = fmt % str(va_nb_elements)
 
+                # fix len_map: replace the variable length array indicator of -1 with actual length
+                len_map = [va_nb_elements if x == -1 else x for x in len_map]
+
                 # decode the checksum
                 try:
                     crc, = struct.unpack('<H', msgbuf[-2:])
