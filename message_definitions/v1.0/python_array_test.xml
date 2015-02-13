@@ -67,7 +67,13 @@
 			<description>Array test #9.</description>
 			<field type="uint32_t"		name="v3">Stub field</field>
 			<field type="double[2]"		name="ar_d">Value array</field>
-			<field type="uint8_t[]"	name="ar_u8_v">Variable length array</field>
+			<field type="uint8_t[]" 	name="ar_u8_v">Variable length array</field>
+		</message>
+		<message id="160" name="ARRAY_TEST_10">
+			<description>Array test #10.</description>
+			<field type="char[11]"		name="ar_c">Value array</field>
+			<field type="double[2]"		name="ar_d">Value array</field>
+			<field type="float[]"		name="ar_f_v">Variable length array</field>
 		</message>
 	</messages>
 </mavlink>

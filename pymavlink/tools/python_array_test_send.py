@@ -3,7 +3,7 @@
 
 import time
 from pymavlink import mavutil
-from random import randint, sample
+from random import randint, sample, random
 
 master = mavutil.mavlink_connection("udp::14555", input=False, dialect="python_array_test")
 while True:
@@ -17,8 +17,9 @@ while True:
     master.mav.array_test_7_send([1.1, 2.2], [3.3, 4.4],
             [4,5], [6,7], [8,9], [10,11], [12,13], [14,15], "long value")
     master.mav.array_test_8_send(1, [2.2, 3.3], [14,15])
-    # last element is random variable length array
-    master.mav.array_test_9_send(1, [2.2, 3.3], sample(xrange(1, 10), randint(1, 9)))
+    # last element is variable length array (with random length of 1-16
+    master.mav.array_test_9_send(1, [2.2, 3.3], sample(xrange(255), randint(1, 16)))
+    master.mav.array_test_10_send("HelloWorld", [2.2, 3.3], sample([x * random() for x in xrange(444)], randint(1, 16)))
     time.sleep(1)
 
 master.close()

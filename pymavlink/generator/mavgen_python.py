@@ -184,28 +184,36 @@ class MAVLink_%s_message(MAVLink_message):
         if len(m.fieldnames) != 0:
             outf.write("                self._fieldnames = ['%s']\n" % "', '".join(m.fieldnames))
         variable_length_array = None
+        msg_has_array = False
         for f in m.fields:
             outf.write("                self.%s = %s\n" % (f.name, f.name))
+            if f.type != "char" and f.array_length != 0:
+                msg_has_array = True
             if f.array_length < 0:
                 variable_length_array = f.name
+        # build format string at runtime if has variable length array
         if variable_length_array is not None:
             len_str = "len(self.%s)" % variable_length_array
             fmtstr = "'{0:s}' % {1:s}".format(m.fmtstr, len_str)
         else:
-            fmtstr = "'{0:s}'".format(m.fmtstr)
+            fmtstr = "'%s'" % m.fmtstr
+        pack_fields = []
+        for field in m.ordered_fields:
+            if msg_has_array:
+                if field.type != "char" and field.array_length != 0:
+                    pack_fields.append("self.{0:s}".format(field.name))
+                else:
+                    pack_fields.append("[self.{0:s}]".format(field.name))
+            else:
+                pack_fields.append("self.{0:s}".format(field.name))
+        # could actually always use list unpacking, but still using separates args for single values is more readable
+        if msg_has_array:
+            argstr = "*(" + " + ".join(pack_fields) + ")"
+        else:
+            argstr = ", ".join(pack_fields)
         outf.write("""
         def pack(self, mav):
-                return MAVLink_message.pack(self, mav, %u, struct.pack(%s""" % (m.crc_extra, fmtstr))
-        for field in m.ordered_fields:
-            if field.type != "char" and field.array_length > 1:
-                for i in range(field.array_length):
-                    outf.write(", self.{0:s}[{1:d}]".format(field.name, i))
-            elif field.type != "char" and field.array_length < 0:
-                # use '*' to unpack variable length array
-                outf.write(", *self.{0:s}".format(field.name))
-            else:
-                outf.write(", self.{0:s}".format(field.name))
-        outf.write("))\n")
+                return MAVLink_message.pack(self, mav, %u, struct.pack(%s, %s))\n""" % (m.crc_extra, fmtstr, argstr))
 
 
 def mavfmt(field):
@@ -409,8 +417,8 @@ class MAVLink(object):
                 va_nb_elements = 0
                 va_fmt = fmt.find('%s')
                 if va_fmt > 0:
-                    fixed_size = struct.calcsize(fmt[:va_fmt])
-                    va_element_size = struct.calcsize(fmt[va_fmt+2:])
+                    fixed_size = struct.calcsize(fmt[:va_fmt]+fmt[va_fmt+3:])
+                    va_element_size = struct.calcsize(fmt[va_fmt+2:va_fmt+3])
                     va_size = len(msgbuf[6:-2]) - fixed_size
                     va_nb_elements = va_size / va_element_size
                     fmt = fmt % str(va_nb_elements)
